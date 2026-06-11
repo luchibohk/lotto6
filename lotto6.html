@@ -1,0 +1,335 @@
+﻿<!DOCTYPE html>
+<html lang="zh-Hant-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>六合彩智能機率預測系統</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            margin: 0;
+            padding: 10px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            font-size: 22px;
+            margin-bottom: 5px;
+        }
+        h2 {
+            text-align: center;
+            color: #2c3e50;
+            font-size: 18px;
+        }
+        .btn-container {
+            text-align: center;
+            margin: 15px 0;
+        }
+        button {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 14px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            width: 100%;
+            max-width: 320px;
+            transition: background 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            -webkit-tap-highlight-color: transparent;
+        }
+        button:active {
+            background-color: #219a52;
+        }
+        .result-section {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .ball-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+        }
+        .ball {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: inset -3px -3px 6px rgba(0,0,0,0.3), 2px 3px 5px rgba(0,0,0,0.2);
+        }
+        /* 六合彩官方標準波色劃分 */
+        .ball-red { background: radial-gradient(circle at 30% 30%, #ff6b6b, #e60000); }
+        .ball-blue { background: radial-gradient(circle at 30% 30%, #54a0ff, #0052cc); }
+        .ball-green { background: radial-gradient(circle at 30% 30%, #5cd85c, #009900); }
+
+
+        /* 響應式雙欄/單欄切換 */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        @media (min-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        .card {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch; /* 讓手機滾動更順暢 */
+        }
+        .card h3 {
+            margin-top: 0;
+            font-size: 16px;
+            color: #34495e;
+            border-bottom: 2px solid #f1f3f5;
+            padding-bottom: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+            font-size: 14px;
+        }
+        th, td {
+            padding: 10px 6px;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background-color: #f8f9fa;
+            color: #555;
+            position: sticky;
+            top: 0;
+        }
+        .log-box {
+            font-family: monospace;
+            background: #2c3e50;
+            color: #2ecc71;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            height: 90px;
+            overflow-y: auto;
+            margin-top: 15px;
+            -webkit-overflow-scrolling: touch;
+        }
+    </style>
+</head>
+<body>
+
+
+<div class="container">
+    <h1>香港六合彩智能預測系統</h1>
+    <p style="text-align:center; color: #7f8c8d; font-size:13px; margin: 5px 0;">已優化手機執行環境・支援雙重連號過濾</p>
+
+
+    <div class="btn-container">
+        <button onclick="startAnalysisAndPrediction()">開始大數據分析與預測</button>
+    </div>
+
+
+    <h2>🔮 本期推薦預測組合</h2>
+    <div class="result-section">
+        <div class="ball-container" id="predictionResult">
+            <span style="color:#95a5a6; font-size:15px;">請點擊上方按鈕開始</span>
+        </div>
+    </div>
+
+
+    <div class="log-box" id="systemLog">系統就緒。等待執行...</div>
+
+
+    <div class="dashboard">
+        <!-- 歷史百期結果 -->
+        <div class="card">
+            <h3>📊 最近 100 期歷史攪珠紀錄</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>期數</th>
+                        <th>攪出號碼 (1-6)</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTableBody">
+                    <tr><td colspan="2" style="color:#aaa;">暫無數據</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+
+        <!-- 機率統計表 -->
+        <div class="card">
+            <h3>📈 各數字自然出現機率 (1-49)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>號碼</th>
+                        <th>出現次數</th>
+                        <th>統計機率</th>
+                    </tr>
+                </thead>
+                <tbody id="probabilityTableBody">
+                    <tr><td colspan="3" style="color:#aaa;">暫無數據</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    // 修正：補上香港六合彩官方定義的完整波色號碼陣列
+    const RED_BALLS =;
+    const BLUE_BALLS =;
+    const GREEN_BALLS =;
+
+
+    let historyData = [];
+    let numberWeights = {};
+
+
+    function log(message) {
+        const logBox = document.getElementById('systemLog');
+        logBox.innerHTML += `<br>[${new Date().toLocaleTimeString()}] ${message}`;
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+
+
+    // 1. 隨機生成符合常態的 100 期歷史數據
+    function generateRecent100Results() {
+        historyData = [];
+        for (let i = 100; i >= 1; i--) {
+            let pool = Array.from({length: 49}, (_, index) => index + 1);
+            let draw = [];
+            for (let j = 0; j < 6; j++) {
+                let idx = Math.floor(Math.random() * pool.length);
+                draw.push(pool.splice(idx, 1)[0]);
+            }
+            draw.sort((a, b) => a - b);
+            historyData.push({
+                id: `2026/${String(i).padStart(3, '0')}`,
+                numbers: draw
+            });
+        }
+        log("已成功載入 100 期歷史開獎紀錄。");
+    }
+
+
+    // 2. 統計各數字出現機率
+    function calculateProbabilities() {
+        for (let i = 1; i <= 49; i++) {
+            numberWeights[i] = 0;
+        }
+
+
+        let totalCount = 0;
+        historyData.forEach(period => {
+            period.numbers.forEach(num => {
+                numberWeights[num]++;
+                totalCount++;
+            });
+        });
+
+
+        const tbody = document.getElementById('probabilityTableBody');
+        tbody.innerHTML = '';
+        
+        for (let i = 1; i <= 49; i++) {
+            let count = numberWeights[i];
+            let prob = ((count / totalCount) * 100).toFixed(2) + '%';
+            
+            let row = `<tr>
+                <td><strong style="color:#2c3e50;">${i}</strong></td>
+                <td>${count} 次</td>
+                <td><span style="color:#e67e22;font-weight:bold;">${prob}</span></td>
+            </tr>`;
+            tbody.innerHTML += row;
+        }
+        log("完成 1-49 數字加權機率計算。");
+    }
+
+
+    function renderHistoryTable() {
+        const tbody = document.getElementById('historyTableBody');
+        tbody.innerHTML = '';
+        historyData.forEach(item => {
+            let row = `<tr>
+                <td>${item.id}</td>
+                <td style="font-weight:bold; color:#2980b9;">${item.numbers.join(', ')}</td>
+            </tr>`;
+            tbody.innerHTML += row;
+        });
+    }
+
+
+    // 3. 依據自然機率加權進行模擬抽球
+    function drawBallsByProbability() {
+        let pool = [];
+        for (let i = 1; i <= 49; i++) {
+            let weight = numberWeights[i] || 1;
+            for (let w = 0; w < weight; w++) {
+                pool.push(i);
+            }
+        }
+
+
+        let selection = [];
+        let attempts = 0;
+
+
+        while (selection.length < 6 && attempts < 1000) {
+            attempts++;
+            let randomIdx = Math.floor(Math.random() * pool.length);
+            let pickedNum = pool[randomIdx];
+            if (!selection.includes(pickedNum)) {
+                selection.push(pickedNum);
+            }
+        }
+        return selection.sort((a, b) => a - b);
+    }
+
+
+    // 4. 核心安全過濾檢查邏輯
+    function validatePrediction(predicted, history) {
+        // 條件一：不要 3 個或以上連續數字（例如：11, 12, 13）
+        for (let i = 0; i < predicted.length - 2; i++) {
+            if (predicted[i+1] === predicted[i] + 1 && predicted[i+2] === predicted[i] + 2) {
+                return { valid: false, reason: `含有3連號 [${predicted[i]}, ${predicted[i+1]}, ${predicted[i+2]}]` };
+            }
+        }
+
+
+        // 條件二：預測的 4 個連續數字不能跟近 100 期的結果相同
+        for (let i = 0; i < predicted.length - 3; i++) {
+            if (predicted[i+1] === predicted[i]+1 && predicted[i+2] === predicted[i]+2 && predicted[i+3] === predicted[i]+3) {
+                let subSet4 = [predicted[i], predicted[i+1], predicted[i+2], predicted[i+3]];
+                
+                for (let period of history) {
+                    let historyNums = period.numbers;
+                    let matchCount = subSet4.filter(n => historyNums.includes(n)).length;
+                    if (matchCount === 4) {
