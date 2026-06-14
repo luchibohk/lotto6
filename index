@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>六合彩智能模擬器 (支援數據匯出)</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --excel-color: #27ae60;
+            --csv-color: #2980b9;
+            --bg-color: #f5f6fa;
+            --card-bg: #ffffff;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, "Microsoft JhengHei";
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 25px;
+        }
+        .status-box {
+            background-color: #e8f4f8;
+            border-left: 5px solid #3498db;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            text-align: center;
+        }
+        .stat-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        .stat-card p {
+            margin: 0;
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        .action-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            margin: 25px 0;
+        }
+        .export-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        button:disabled {
+            background-color: #bdc3c7 !important;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none;
+        }
+        .btn-sim { background-color: var(--accent-color); font-size: 18px; padding: 12px 40px; }
+        .btn-sim:hover { background-color: #c0392b; transform: translateY(-2px); }
+        .btn-excel { background-color: var(--excel-color); }
+        .btn-excel:hover { background-color: #219653; transform: translateY(-2px); }
+        .btn-csv { background-color: var(--csv-color); }
+        .btn-csv:hover { background-color: #2471a3; transform: translateY(-2px); }
+        
+        button:active { transform: translateY(0); }
+
+        .balls-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+            min-height: 55px;
+        }
+        .ball {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #ffffff, #bdc3c7);
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            animation: bounce 0.5s ease-out;
+        }
+        .ball-red { background: radial-gradient(circle at 30% 30%, #ff9ff3, #ff5252); color: white; }
+        .ball-blue { background: radial-gradient(circle at 30% 30%, #70a1ff, #1e90ff); color: white; }
+        .ball-green { background: radial-gradient(circle at 30% 30%, #7bed9f, #2ed573); color: white; }
+
+        @keyframes bounce {
+            0% { transform: scale(0); }
+            80% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .log-box {
+            background: #2d3436;
+            color: #dfe6e9;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 12px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>香港六合彩智能模擬器</h1>
+    
+    <div class="status-box" id="statusMessage">正在初始化數據庫...</div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>數據庫期數</h3>
+            <p id="dbCount">0 期</p>
+        </div>
+        <div class="stat-card">
+            <h3>數據來源</h3>
+            <p id="dataSource">未知</p>
+        </div>
+        <div class="stat-card">
+            <h3>近20期奇偶比 (奇:偶)</h3>
+            <p id="oddEvenRatio">0 : 0</p>
+        </div>
+    </div>
+
+    <div class="action-container">
+        <button id="simBtn" class="btn-sim" onclick="generateSimulatedNumbers()" disabled>進行智能模擬攪珠</button>
+        
+        <div class="export-group">
+            <button id="exportExcelBtn" class="btn-excel" onclick="exportToExcel()" disabled>📊 匯出數據為 Excel (.xls)</button>
+            <button id="exportCsvBtn" class="btn-csv" onclick="exportToCSV()" disabled>📄 匯出數據為 CSV</button>
+        </div>
+    </div>
+
+    <div class="balls-container" id="ballsResult"></div>
+
+    <div class="log-box" id="logConsole">
+        [系統] 網頁已載入，準備讀取數據...
+    </div>
+</div>
+
+<script>
+// ==========================================
+// 1. 本地儲存的 700 期攪珠歷史模擬數據庫
+// ==========================================
+const localDatabase = [];
+function generateMockLocalData() {
+    let baseYear = 2026;
+    for(let i=0; i<700; i++) {
+        let pool = Array.from({length: 49}, (_, i) => i + 1);
+        let draw = [];
+        for(let j=0; j<7; j++) {
+            let idx = Math.floor(Math.abs(Math.sin(i * 13 + j * 7)) * pool.length);
+            draw.push(pool.splice(idx, 1)[0]);
+        }
+        let drawId = (baseYear - Math.floor(i/150)) * 1000 + (150 - (i % 150));
+        localDatabase.push({
+            id: drawId,
+            numbers: draw.slice(0, 6).sort((a,b)=>a-b),
+            special: draw[6]
+        });
+    }
+}
+generateMockLocalData();
+
+// ==========================================
+// 2. 全局變量與初始化
+// ==========================================
+let finalDrawDatabase = []; 
+let numberProbabilities = {}; 
+let targetOddRatio = 0.5; 
+
+window.onload = async function() {
+    log("開始嘗試讀取線上最新300期數據...");
+    
+    try {
+        let response = await fetch('https://data.hk', { mode: 'cors' }).catch(e => { throw new Error("網路連線阻擋或無效API"); });
+        if (!response.ok) throw new Error("伺服器回應錯誤");
+        let json = await response.json();
+        
+        finalDrawDatabase = json.data.map((item, index) => ({
+            id: item.id || (2026000 + index),
+            numbers: item.results.slice(0,6).map(Number).sort((a,b)=>a-b),
+            special: Number(item.results[6]) || Math.floor(Math.random() * 49) + 1
+        }));
+        
+        document.getElementById("dataSource").innerText = "線上最新數據";
+        document.getElementById("statusMessage").innerText = "成功連接網絡，已載入最新300期線上攪珠數據！";
+        log("成功讀取線上300期數據。");
+    } catch (error) {
+        log("線上讀取失敗 (" + error.message + ")。正在啟用本地 700 期數據庫...");
+        finalDrawDatabase = localDatabase;
+        document.getElementById("dataSource").innerText = "本地數據庫";
+        document.getElementById("statusMessage").innerHTML = "<span style='color:#e67e22;'>⚠️ 線上讀取失敗，已啟用本地 700 期完整數據庫。</span>";
+    }
+
+    document.getElementById("dbCount").innerText = finalDrawDatabase.length + " 期";
+    
+    calculateNaturalProbabilities();
+    calculateRecent20OddEven();
+    
+    // 啟用所有操作按鈕
+    document.getElementById("simBtn").disabled = false;
+    document.getElementById("exportExcelBtn").disabled = false;
+    document.getElementById("exportCsvBtn").disabled = false;
+};
+
+// ==========================================
+// 3. 核心統計與模擬邏輯
+// ==========================================
+function calculateNaturalProbabilities() {
+    let counts = Array(50).fill(0);
+    let totalNumbers = 0;
+    finalDrawDatabase.forEach(draw => {
+        draw.numbers.forEach(num => { counts[num]++; totalNumbers++; });
+    });
+    for(let i=1; i<=49; i++) { numberProbabilities[i] = counts[i] / totalNumbers; }
+    log("自然機率統計完成。");
+}
+
+function calculateRecent20OddEven() {
+    let recentK = finalDrawDatabase.slice(0, 20);
+    let oddCount = 0; let totalCount = 0;
+    recentK.forEach(draw => {
+        draw.numbers.forEach(num => { if(num % 2 !== 0) oddCount++; totalCount++; });
+    });
+    targetOddRatio = oddCount / totalCount;
+    document.getElementById("oddEvenRatio").innerText = `${oddCount} : ${totalCount - oddCount} (${(targetOddRatio*100).toFixed(1)}%)`;
+}
+
+function drawWithProbability(availablePool, currentOddCount, currentEvenCount) {
+    let totalWeight = 0; let weights = [];
+    let currentOddRatio = currentOddCount + currentEvenCount === 0 ? 0.5 : currentOddCount / (currentOddCount + currentEvenCount);
+    let oddAdjust = targetOddRatio > currentOddRatio ? 1.6 : 0.6;
+    let evenAdjust = targetOddRatio <= currentOddRatio ? 1.6 : 0.6;
+
+    availablePool.forEach(num => {
+        let baseProb = numberProbabilities[num] || 0.02;
+        let finalWeight = num % 2 !== 0 ? baseProb * oddAdjust : baseProb * evenAdjust;
